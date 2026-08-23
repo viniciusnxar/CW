@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Calculadora de Planos · Cardápio Web</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="page">
+    <div class="container">
+
+      <!-- HEADER -->
+      <div class="header">
+        <div class="badge">Suporte · Ferramentas internas</div>
+        <h1>Calculadora de Planos</h1>
+        <p class="subtitle">
+          Consulte valores de planos e módulos, ou calcule o ajuste proporcional de
+          uma migração de plano no meio do ciclo.
+        </p>
+      </div>
+
+      <!-- TABS -->
+      <div class="tabs">
+        <button id="tab-cotacao" class="cw-tab cw-tab-active" data-tab="cotacao">
+          <i data-lucide="calculator"></i> Novo cliente
+        </button>
+        <button id="tab-migracao" class="cw-tab cw-tab-inactive" data-tab="migracao">
+          <i data-lucide="arrow-right-left"></i> Migração de plano
+        </button>
+      </div>
+
+      <!-- ABA 1: COTAÇÃO -->
+      <div id="panel-cotacao" class="cw-card">
+        <div class="grid-2">
+
+          <!-- FORM -->
+          <div class="form-col">
+            <div>
+              <span class="cw-label">Plano</span>
+              <select id="cot-plano" class="cw-select"></select>
+              <p id="cot-plano-desc" class="hint"></p>
+            </div>
+
+            <div>
+              <span class="cw-label">Recorrência</span>
+              <div id="cot-recorrencia" class="grid-2-gap"></div>
+            </div>
+
+            <div>
+              <span class="cw-label">
+                <i data-lucide="package" class="inline-icon"></i>
+                Módulos adicionais (opcional)
+              </span>
+              <div id="cot-modulos" class="stack"></div>
+            </div>
+
+            <div class="cw-note">
+              <i data-lucide="info" class="note-icon"></i>
+              <span>
+                Valor do módulo no ciclo = mensal × nº de meses, <strong>sem desconto de fidelidade</strong>.
+                Apenas o valor do plano já inclui o desconto por recorrência.
+              </span>
+            </div>
+          </div>
+
+          <!-- RESULTADO -->
+          <div class="result-col">
+            <span class="cw-label">Resumo da fatura</span>
+            <div class="cw-ticket" id="cot-ticket"></div>
+
+            <div class="cw-note" style="margin-top:16px;">
+              <i data-lucide="info" class="note-icon"></i>
+              <span>
+                Se o módulo for contratado <strong>junto com o plano</strong>, ele entra nesta mesma fatura.
+                Se for contratado <strong>depois</strong>, ele é cobrado em fatura separada — use a aba de
+                Migração apenas para o plano nesse caso.
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ABA 2: MIGRAÇÃO -->
+      <div id="panel-migracao" class="cw-card" style="display:none;">
+        <div class="grid-2">
+
+          <!-- FORM -->
+          <div class="form-col">
+            <div>
+              <span class="cw-label">Plano atual</span>
+              <div class="grid-2-gap">
+                <select id="mig-plano-atual" class="cw-select"></select>
+                <select id="mig-rec-atual" class="cw-select"></select>
+              </div>
+            </div>
+
+            <div>
+              <span class="cw-label">Início do ciclo atual</span>
+              <input id="mig-inicio" class="cw-input" type="date">
+              <p id="mig-fim-info" class="hint"></p>
+            </div>
+
+            <div class="divider"></div>
+
+            <div>
+              <span class="cw-label">Novo plano</span>
+              <div class="grid-2-gap">
+                <select id="mig-plano-novo" class="cw-select"></select>
+                <select id="mig-rec-nova" class="cw-select"></select>
+              </div>
+            </div>
+
+            <div>
+              <span class="cw-label">Data da mudança</span>
+              <input id="mig-mudanca" class="cw-input" type="date">
+            </div>
+
+            <div id="mig-warn" class="cw-warn" style="display:none;">
+              <i data-lucide="alert-triangle" class="note-icon warn-icon"></i>
+              <span id="mig-warn-text"></span>
+            </div>
+          </div>
+
+          <!-- RESULTADO -->
+          <div class="result-col">
+            <span class="cw-label">Resumo da migração</span>
+
+            <div id="mig-empty" class="empty-box">
+              Preencha a data de início do ciclo atual e a data da mudança para calcular.
+            </div>
+
+            <div id="mig-ticket" class="cw-ticket" style="display:none; margin-top:8px;"></div>
+
+            <div class="cw-note" style="margin-top:16px;">
+              <i data-lucide="check-circle-2" class="note-icon"></i>
+              <span>
+                Módulos contratados <strong>separadamente</strong> continuam sendo cobrados normalmente no
+                ciclo deles e não entram nesse cálculo.
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="footer">Cardápio Web · Calculadora interna de suporte</div>
+
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

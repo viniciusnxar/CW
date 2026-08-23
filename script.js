@@ -81,7 +81,23 @@ const state = {
     recNova: "anual",
     dataMudanca: "",
   },
+  migracaoPersonalizada: {
+    nomeAtual: "",
+    mensalAtual: "",
+    recAtual: "mensal",
+    inicioCiclo: "",
+    novoPersonalizado: false,
+    planoNovo: "mesas",
+    recNova: "anual",
+    nomeNovo: "",
+    mensalNovo: "",
+    recNovaCustom: "mensal",
+    dataMudanca: "",
+    modulos: [], // { id, nomeAntigo, mensalAntigo, moduloNovoKey }
+  },
 };
+
+let migPersonalizadaModuloSeq = 0;
 
 /* ──────────────────────────────────────────────────────────
    TABS
@@ -98,6 +114,19 @@ function setTab(tab) {
 
 document.getElementById("tab-cotacao").addEventListener("click", () => setTab("cotacao"));
 document.getElementById("tab-migracao").addEventListener("click", () => setTab("migracao"));
+
+function setMigSubtab(subtab) {
+  const isPadrao = subtab === "padrao";
+
+  document.getElementById("mig-view-padrao").style.display = isPadrao ? "" : "none";
+  document.getElementById("mig-view-personalizado").style.display = isPadrao ? "none" : "";
+
+  document.getElementById("subtab-padrao").className = `cw-subtab ${isPadrao ? "cw-subtab-active" : "cw-subtab-inactive"}`;
+  document.getElementById("subtab-personalizado").className = `cw-subtab ${!isPadrao ? "cw-subtab-active" : "cw-subtab-inactive"}`;
+}
+
+document.getElementById("subtab-padrao").addEventListener("click", () => setMigSubtab("padrao"));
+document.getElementById("subtab-personalizado").addEventListener("click", () => setMigSubtab("personalizado"));
 
 /* ──────────────────────────────────────────────────────────
    ABA 1 — COTAÇÃO SIMPLES
@@ -363,6 +392,293 @@ function renderMigracao() {
 }
 
 /* ──────────────────────────────────────────────────────────
+   ABA 2.2 — MIGRAÇÃO COM VALORES PERSONALIZADOS
+   Mesmo princípio da migração padrão (crédito/débito proporcional
+   aos dias restantes do ciclo), mas o valor do plano atual (e,
+   opcionalmente, do plano novo) é digitado manualmente — usado
+   quando o cliente está numa tabela antiga/negociada.
+   Módulos com valor antigo entram no mesmo cálculo proporcional,
+   comparando com o módulo novo correspondente (se houver).
+   ────────────────────────────────────────────────────────── */
+const escapeHtml = (str) =>
+  String(str ?? "").replace(/[&<>"']/g, (c) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  }[c]));
+
+function initMigracaoPersonalizadaForm() {
+  const s = state.migracaoPersonalizada;
+  const recOptions = RECORRENCIAS.map((r) => `<option value="${r.key}">${r.label}</option>`).join("");
+  const planoOptions = Object.entries(PLANOS)
+    .map(([key, p]) => `<option value="${key}">${p.label}</option>`)
+    .join("");
+
+  document.getElementById("migp-rec-atual").innerHTML = recOptions;
+  document.getElementById("migp-rec-atual").value = s.recAtual;
+  document.getElementById("migp-rec-nova-custom").innerHTML = recOptions;
+  document.getElementById("migp-rec-nova-custom").value = s.recNovaCustom;
+  document.getElementById("migp-plano-novo").innerHTML = planoOptions;
+  document.getElementById("migp-plano-novo").value = s.planoNovo;
+  document.getElementById("migp-rec-nova").innerHTML = recOptions;
+  document.getElementById("migp-rec-nova").value = s.recNova;
+
+  document.getElementById("migp-nome-atual").addEventListener("input", (e) => {
+    s.nomeAtual = e.target.value;
+  });
+  document.getElementById("migp-mensal-atual").addEventListener("input", (e) => {
+    s.mensalAtual = e.target.value;
+    renderMigracaoPersonalizada();
+  });
+  document.getElementById("migp-rec-atual").addEventListener("change", (e) => {
+    s.recAtual = e.target.value;
+    renderMigracaoPersonalizada();
+  });
+  document.getElementById("migp-inicio").addEventListener("change", (e) => {
+    s.inicioCiclo = e.target.value;
+    renderMigracaoPersonalizada();
+  });
+
+  document.getElementById("migp-novo-personalizado").addEventListener("change", (e) => {
+    s.novoPersonalizado = e.target.checked;
+    document.getElementById("migp-novo-tabela").style.display = s.novoPersonalizado ? "none" : "";
+    document.getElementById("migp-novo-custom").style.display = s.novoPersonalizado ? "" : "none";
+    renderMigracaoPersonalizada();
+  });
+  document.getElementById("migp-plano-novo").addEventListener("change", (e) => {
+    s.planoNovo = e.target.value;
+    renderMigracaoPersonalizada();
+  });
+  document.getElementById("migp-rec-nova").addEventListener("change", (e) => {
+    s.recNova = e.target.value;
+    renderMigracaoPersonalizada();
+  });
+  document.getElementById("migp-nome-novo").addEventListener("input", (e) => {
+    s.nomeNovo = e.target.value;
+  });
+  document.getElementById("migp-mensal-novo").addEventListener("input", (e) => {
+    s.mensalNovo = e.target.value;
+    renderMigracaoPersonalizada();
+  });
+  document.getElementById("migp-rec-nova-custom").addEventListener("change", (e) => {
+    s.recNovaCustom = e.target.value;
+    renderMigracaoPersonalizada();
+  });
+  document.getElementById("migp-mudanca").addEventListener("change", (e) => {
+    s.dataMudanca = e.target.value;
+    renderMigracaoPersonalizada();
+  });
+
+  document.getElementById("migp-add-modulo").addEventListener("click", () => {
+    s.modulos.push({ id: ++migPersonalizadaModuloSeq, nomeAntigo: "", mensalAntigo: "", moduloNovoKey: "" });
+    renderModulosPersonalizadosList();
+    renderMigracaoPersonalizada();
+  });
+}
+
+function renderModulosPersonalizadosList() {
+  const s = state.migracaoPersonalizada;
+  const wrap = document.getElementById("migp-modulos-list");
+
+  if (s.modulos.length === 0) {
+    wrap.innerHTML = "";
+    return;
+  }
+
+  wrap.innerHTML = s.modulos
+    .map(
+      (m) => `
+    <div class="modulo-custom-row" data-modulo-id="${m.id}">
+      <div class="modulo-custom-top">
+        <input type="text" class="cw-input migp-mod-nome" placeholder="Nome do módulo antigo" value="${escapeHtml(m.nomeAntigo)}">
+        <input type="number" step="0.01" min="0" class="cw-input migp-mod-mensal" placeholder="Valor mensal antigo (R$)" value="${escapeHtml(m.mensalAntigo)}">
+      </div>
+      <div class="modulo-custom-bottom">
+        <select class="cw-select migp-mod-novo">
+          <option value="">Nenhum (módulo removido)</option>
+          ${MODULOS.map(
+            (mod) =>
+              `<option value="${mod.key}" ${mod.key === m.moduloNovoKey ? "selected" : ""}>${mod.label} (${fmt(mod.mensal)}/mês)</option>`
+          ).join("")}
+        </select>
+        <button type="button" class="remove-modulo-btn" title="Remover módulo">×</button>
+      </div>
+    </div>`
+    )
+    .join("");
+
+  wrap.querySelectorAll(".modulo-custom-row").forEach((row) => {
+    const id = Number(row.dataset.moduloId);
+    const modulo = s.modulos.find((m) => m.id === id);
+
+    row.querySelector(".migp-mod-nome").addEventListener("input", (e) => {
+      modulo.nomeAntigo = e.target.value;
+    });
+    row.querySelector(".migp-mod-mensal").addEventListener("input", (e) => {
+      modulo.mensalAntigo = e.target.value;
+      renderMigracaoPersonalizada();
+    });
+    row.querySelector(".migp-mod-novo").addEventListener("change", (e) => {
+      modulo.moduloNovoKey = e.target.value;
+      renderMigracaoPersonalizada();
+    });
+    row.querySelector(".remove-modulo-btn").addEventListener("click", () => {
+      s.modulos = s.modulos.filter((m) => m.id !== id);
+      renderModulosPersonalizadosList();
+      renderMigracaoPersonalizada();
+    });
+  });
+}
+
+function calcularMigracaoPersonalizada() {
+  const s = state.migracaoPersonalizada;
+
+  const inicio = parseDate(s.inicioCiclo);
+  const mudanca = parseDate(s.dataMudanca);
+  const mensalAtual = parseFloat(s.mensalAtual);
+
+  if (!inicio || !mudanca || !Number.isFinite(mensalAtual)) return null;
+
+  const mesesAtual = mesesDe(s.recAtual);
+  const fim = fimDoCiclo(inicio, mesesAtual);
+  const diasTotais = diffDias(fim, inicio);
+  const diasRestantes = diffDias(fim, mudanca) + 1;
+  const fora = mudanca < inicio || mudanca > fim;
+  const fracao = diasTotais > 0 ? diasRestantes / diasTotais : 0;
+
+  const valorAtualCiclo = mensalAtual * mesesAtual;
+  const recAtualLabel = RECORRENCIAS.find((r) => r.key === s.recAtual).label;
+  const nomeAtual = `${s.nomeAtual.trim() || "Plano atual (personalizado)"} · ${recAtualLabel}`;
+
+  let valorNovoCiclo, nomeNovo, recNovaLabel, mesesNovo;
+  if (s.novoPersonalizado) {
+    const mensalNovo = parseFloat(s.mensalNovo);
+    mesesNovo = mesesDe(s.recNovaCustom);
+    valorNovoCiclo = Number.isFinite(mensalNovo) ? mensalNovo * mesesNovo : 0;
+    nomeNovo = s.nomeNovo.trim() || "Plano novo (personalizado)";
+    recNovaLabel = RECORRENCIAS.find((r) => r.key === s.recNovaCustom).label;
+  } else {
+    mesesNovo = mesesDe(s.recNova);
+    valorNovoCiclo = PLANOS[s.planoNovo].precos[s.recNova];
+    nomeNovo = PLANOS[s.planoNovo].label;
+    recNovaLabel = RECORRENCIAS.find((r) => r.key === s.recNova).label;
+  }
+
+  const creditoPlano = valorAtualCiclo * fracao;
+  const debitoPlano = valorNovoCiclo * fracao;
+  const diffPlano = debitoPlano - creditoPlano;
+
+  const modulos = s.modulos
+    .map((m) => {
+      const mensalAntigoMod = parseFloat(m.mensalAntigo);
+      if (!Number.isFinite(mensalAntigoMod)) return null;
+
+      const valorAntigoCiclo = mensalAntigoMod * mesesAtual;
+      const creditoModulo = valorAntigoCiclo * fracao;
+
+      let debitoModulo = 0;
+      let nomeModuloNovo = "Removido (sem substituto)";
+      if (m.moduloNovoKey) {
+        const moduloNovo = MODULOS.find((mod) => mod.key === m.moduloNovoKey);
+        nomeModuloNovo = moduloNovo.label;
+        debitoModulo = moduloNovo.mensal * mesesNovo * fracao;
+      }
+
+      const diffModulo = debitoModulo - creditoModulo;
+      const nomeAntigoDisplay = m.nomeAntigo.trim() || "Módulo antigo";
+
+      return { nomeAntigoDisplay, nomeModuloNovo, creditoModulo, debitoModulo, diffModulo };
+    })
+    .filter(Boolean);
+
+  const totalModulos = modulos.reduce((acc, m) => acc + m.diffModulo, 0);
+  const totalGeral = diffPlano + totalModulos;
+
+  return {
+    fim, diasTotais, diasRestantes, fora,
+    valorAtualCiclo, nomeAtual,
+    valorNovoCiclo, nomeNovo, recNovaLabel,
+    creditoPlano, debitoPlano, diffPlano,
+    modulos, totalGeral,
+    inicio,
+  };
+}
+
+function renderMigracaoPersonalizada() {
+  const s = state.migracaoPersonalizada;
+  const calc = calcularMigracaoPersonalizada();
+
+  const fimInfo = document.getElementById("migp-fim-info");
+  if (calc) {
+    fimInfo.innerHTML = `Fim do ciclo atual: <strong>${fmtDataBR(calc.fim)}</strong> (${calc.diasTotais} dias no ciclo)`;
+  } else {
+    fimInfo.textContent = "";
+  }
+
+  const warnBox = document.getElementById("migp-warn");
+  const warnText = document.getElementById("migp-warn-text");
+  if (calc && calc.fora) {
+    warnBox.style.display = "flex";
+    warnText.textContent = `A data da mudança está fora do ciclo atual (entre ${fmtDataBR(calc.inicio)} e ${fmtDataBR(calc.fim)}). Confira as datas — o resultado abaixo não é confiável.`;
+  } else {
+    warnBox.style.display = "none";
+  }
+
+  const emptyBox = document.getElementById("migp-empty");
+  const ticket = document.getElementById("migp-ticket");
+
+  if (!calc) {
+    emptyBox.style.display = "flex";
+    ticket.style.display = "none";
+    return;
+  }
+
+  emptyBox.style.display = "none";
+  ticket.style.display = "";
+
+  let rowsHtml = `
+    <div class="cw-row">
+      <span class="cw-row-label">${escapeHtml(calc.nomeAtual)}</span>
+      <span class="cw-row-value">${fmt(calc.valorAtualCiclo)}</span>
+    </div>
+    <div class="cw-row">
+      <span class="cw-row-label">${escapeHtml(calc.nomeNovo)} · ${calc.recNovaLabel}</span>
+      <span class="cw-row-value">${fmt(calc.valorNovoCiclo)}</span>
+    </div>
+    <div class="cw-row">
+      <span class="cw-row-label">Dias restantes / dias do ciclo</span>
+      <span class="cw-row-value">${calc.diasRestantes} / ${calc.diasTotais}</span>
+    </div>
+    <div class="cw-row">
+      <span class="cw-row-label">Crédito proporcional (plano atual)</span>
+      <span class="cw-row-value" style="color:#1DB954;">− ${fmt(calc.creditoPlano)}</span>
+    </div>
+    <div class="cw-row">
+      <span class="cw-row-label">Débito proporcional (plano novo)</span>
+      <span class="cw-row-value">${fmt(calc.debitoPlano)}</span>
+    </div>`;
+
+  calc.modulos.forEach((m) => {
+    const sinal = m.diffModulo >= 0 ? "+" : "−";
+    const cor = m.diffModulo >= 0 ? "#2B2138" : "#1DB954";
+    rowsHtml += `
+    <div class="cw-row">
+      <span class="cw-row-label">Módulo: ${escapeHtml(m.nomeAntigoDisplay)} → ${escapeHtml(m.nomeModuloNovo)}</span>
+      <span class="cw-row-value" style="color:${cor};">${sinal} ${fmt(Math.abs(m.diffModulo))}</span>
+    </div>`;
+  });
+
+  const totalLabel = calc.totalGeral >= 0 ? "Valor a pagar" : "Valor a favor do cliente";
+  const totalColor = calc.totalGeral >= 0 ? "#A543FA" : "#1DB954";
+
+  rowsHtml += `
+    <div class="cw-total-row">
+      <span class="cw-total-label">${totalLabel}</span>
+      <span class="cw-total-value" style="color:${totalColor};">${fmt(Math.abs(calc.totalGeral))}</span>
+    </div>`;
+
+  ticket.innerHTML = rowsHtml;
+}
+
+/* ──────────────────────────────────────────────────────────
    INICIALIZAÇÃO
    ────────────────────────────────────────────────────────── */
 document.addEventListener("DOMContentLoaded", () => {
@@ -371,6 +687,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   initMigracaoForm();
   renderMigracao();
+
+  initMigracaoPersonalizadaForm();
+  renderModulosPersonalizadosList();
+  renderMigracaoPersonalizada();
 
   if (window.lucide) {
     lucide.createIcons();

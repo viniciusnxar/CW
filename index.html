@@ -88,65 +88,189 @@
 
       <!-- ABA 2: MIGRAÇÃO -->
       <div id="panel-migracao" class="cw-card" style="display:none;">
-        <div class="grid-2">
 
-          <!-- FORM -->
-          <div class="form-col">
-            <div>
-              <span class="cw-label">Plano atual</span>
-              <div class="grid-2-gap">
-                <select id="mig-plano-atual" class="cw-select"></select>
-                <select id="mig-rec-atual" class="cw-select"></select>
-              </div>
-            </div>
-
-            <div>
-              <span class="cw-label">Início do ciclo atual</span>
-              <input id="mig-inicio" class="cw-input" type="date">
-              <p id="mig-fim-info" class="hint"></p>
-            </div>
-
-            <div class="divider"></div>
-
-            <div>
-              <span class="cw-label">Novo plano</span>
-              <div class="grid-2-gap">
-                <select id="mig-plano-novo" class="cw-select"></select>
-                <select id="mig-rec-nova" class="cw-select"></select>
-              </div>
-            </div>
-
-            <div>
-              <span class="cw-label">Data da mudança</span>
-              <input id="mig-mudanca" class="cw-input" type="date">
-            </div>
-
-            <div id="mig-warn" class="cw-warn" style="display:none;">
-              <i data-lucide="alert-triangle" class="note-icon warn-icon"></i>
-              <span id="mig-warn-text"></span>
-            </div>
-          </div>
-
-          <!-- RESULTADO -->
-          <div class="result-col">
-            <span class="cw-label">Resumo da migração</span>
-
-            <div id="mig-empty" class="empty-box">
-              Preencha a data de início do ciclo atual e a data da mudança para calcular.
-            </div>
-
-            <div id="mig-ticket" class="cw-ticket" style="display:none; margin-top:8px;"></div>
-
-            <div class="cw-note" style="margin-top:16px;">
-              <i data-lucide="check-circle-2" class="note-icon"></i>
-              <span>
-                Módulos contratados <strong>separadamente</strong> continuam sendo cobrados normalmente no
-                ciclo deles e não entram nesse cálculo.
-              </span>
-            </div>
-          </div>
-
+        <!-- SUB-ABAS -->
+        <div class="subtabs">
+          <button id="subtab-padrao" class="cw-subtab cw-subtab-active" data-subtab="padrao">
+            Tabela padrão
+          </button>
+          <button id="subtab-personalizado" class="cw-subtab cw-subtab-inactive" data-subtab="personalizado">
+            Valores personalizados
+          </button>
         </div>
+
+        <!-- SUB-VIEW: PADRÃO -->
+        <div id="mig-view-padrao">
+          <div class="grid-2">
+
+            <!-- FORM -->
+            <div class="form-col">
+              <div>
+                <span class="cw-label">Plano atual</span>
+                <div class="grid-2-gap">
+                  <select id="mig-plano-atual" class="cw-select"></select>
+                  <select id="mig-rec-atual" class="cw-select"></select>
+                </div>
+              </div>
+
+              <div>
+                <span class="cw-label">Início do ciclo atual</span>
+                <input id="mig-inicio" class="cw-input" type="date">
+                <p id="mig-fim-info" class="hint"></p>
+              </div>
+
+              <div class="divider"></div>
+
+              <div>
+                <span class="cw-label">Novo plano</span>
+                <div class="grid-2-gap">
+                  <select id="mig-plano-novo" class="cw-select"></select>
+                  <select id="mig-rec-nova" class="cw-select"></select>
+                </div>
+              </div>
+
+              <div>
+                <span class="cw-label">Data da mudança</span>
+                <input id="mig-mudanca" class="cw-input" type="date">
+              </div>
+
+              <div id="mig-warn" class="cw-warn" style="display:none;">
+                <i data-lucide="alert-triangle" class="note-icon warn-icon"></i>
+                <span id="mig-warn-text"></span>
+              </div>
+            </div>
+
+            <!-- RESULTADO -->
+            <div class="result-col">
+              <span class="cw-label">Resumo da migração</span>
+
+              <div id="mig-empty" class="empty-box">
+                Preencha a data de início do ciclo atual e a data da mudança para calcular.
+              </div>
+
+              <div id="mig-ticket" class="cw-ticket" style="display:none; margin-top:8px;"></div>
+
+              <div class="cw-note" style="margin-top:16px;">
+                <i data-lucide="check-circle-2" class="note-icon"></i>
+                <span>
+                  Módulos contratados <strong>separadamente</strong> continuam sendo cobrados normalmente no
+                  ciclo deles e não entram nesse cálculo.
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SUB-VIEW: VALORES PERSONALIZADOS -->
+        <div id="mig-view-personalizado" style="display:none;">
+          <div class="grid-2">
+
+            <!-- FORM -->
+            <div class="form-col">
+
+              <div class="cw-note">
+                <i data-lucide="info" class="note-icon"></i>
+                <span>
+                  Use esta aba quando o cliente tiver um <strong>valor antigo/negociado</strong>, fora da
+                  tabela atual, para o plano ou para módulos. Informe o valor mensal que ele realmente paga
+                  hoje — o sistema calcula o ciclo e compara com os valores novos.
+                </span>
+              </div>
+
+              <div>
+                <span class="cw-label">Plano atual — nome (opcional)</span>
+                <input id="migp-nome-atual" class="cw-input" type="text" placeholder="Ex: Plano Delivery (valor antigo)">
+              </div>
+
+              <div class="grid-2-gap">
+                <div>
+                  <span class="cw-label">Valor mensal atual (R$)</span>
+                  <input id="migp-mensal-atual" class="cw-input" type="number" step="0.01" min="0" placeholder="0,00">
+                </div>
+                <div>
+                  <span class="cw-label">Recorrência do ciclo atual</span>
+                  <select id="migp-rec-atual" class="cw-select"></select>
+                </div>
+              </div>
+
+              <div>
+                <span class="cw-label">Início do ciclo atual</span>
+                <input id="migp-inicio" class="cw-input" type="date">
+                <p id="migp-fim-info" class="hint"></p>
+              </div>
+
+              <div class="divider"></div>
+
+              <div>
+                <span class="cw-label">Novo plano</span>
+                <label class="cw-check-inline">
+                  <input type="checkbox" id="migp-novo-personalizado" class="modulo-checkbox">
+                  <span>Também usar valor personalizado para o plano novo</span>
+                </label>
+              </div>
+
+              <div id="migp-novo-tabela" class="grid-2-gap">
+                <select id="migp-plano-novo" class="cw-select"></select>
+                <select id="migp-rec-nova" class="cw-select"></select>
+              </div>
+
+              <div id="migp-novo-custom" style="display:none;">
+                <input id="migp-nome-novo" class="cw-input" type="text" placeholder="Nome do plano novo (opcional)" style="margin-bottom:8px;">
+                <div class="grid-2-gap">
+                  <input id="migp-mensal-novo" class="cw-input" type="number" step="0.01" min="0" placeholder="Valor mensal novo (R$)">
+                  <select id="migp-rec-nova-custom" class="cw-select"></select>
+                </div>
+              </div>
+
+              <div>
+                <span class="cw-label">Data da mudança</span>
+                <input id="migp-mudanca" class="cw-input" type="date">
+              </div>
+
+              <div id="migp-warn" class="cw-warn" style="display:none;">
+                <i data-lucide="alert-triangle" class="note-icon warn-icon"></i>
+                <span id="migp-warn-text"></span>
+              </div>
+
+              <div class="divider"></div>
+
+              <div>
+                <span class="cw-label">
+                  <i data-lucide="package" class="inline-icon"></i>
+                  Módulos com valor antigo (opcional)
+                </span>
+                <div id="migp-modulos-list" class="stack"></div>
+                <button type="button" id="migp-add-modulo" class="add-modulo-btn">
+                  + Adicionar módulo personalizado
+                </button>
+              </div>
+
+            </div>
+
+            <!-- RESULTADO -->
+            <div class="result-col">
+              <span class="cw-label">Resumo da migração personalizada</span>
+
+              <div id="migp-empty" class="empty-box">
+                Preencha o valor mensal atual, o início do ciclo e a data da mudança para calcular.
+              </div>
+
+              <div id="migp-ticket" class="cw-ticket" style="display:none; margin-top:8px;"></div>
+
+              <div class="cw-note" style="margin-top:16px;">
+                <i data-lucide="check-circle-2" class="note-icon"></i>
+                <span>
+                  O valor do ciclo (plano e módulos) é calculado como <strong>mensal × nº de meses</strong>,
+                  sem desconto de fidelidade — igual à cotação de módulos avulsos. Os módulos aqui listados
+                  entram no cálculo proporcional junto com o plano, pelo mesmo período restante.
+                </span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
       </div>
 
       <div class="footer">Cardápio Web · Calculadora interna de suporte</div>

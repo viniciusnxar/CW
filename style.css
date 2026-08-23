@@ -89,6 +89,98 @@ h1 {
 .cw-tab-inactive:hover { background: rgba(165, 67, 250, 0.08); }
 .cw-tab-active { background: #A543FA; color: #fff; box-shadow: 0 4px 14px rgba(165, 67, 250, 0.35); }
 
+/* SUB-TABS (dentro de Migração) */
+.subtabs {
+  display: flex;
+  gap: 6px;
+  padding: 16px 28px 0;
+}
+
+.cw-subtab {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 12.5px;
+  border: none;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 999px;
+  transition: all .15s ease;
+}
+.cw-subtab-inactive {
+  background: #F4EDF7;
+  color: #7C6B92;
+}
+.cw-subtab-inactive:hover { background: #EADBF7; }
+.cw-subtab-active {
+  background: #59327A;
+  color: #fff;
+}
+
+/* CHECKBOX INLINE (rótulo + caixa lado a lado, sem moldura de cw-check) */
+.cw-check-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #59327A;
+}
+
+/* MÓDULOS PERSONALIZADOS */
+.modulo-custom-row {
+  border: 1.5px solid #E9DFF0;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.modulo-custom-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.modulo-custom-bottom {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.remove-modulo-btn {
+  background: #FFF0F0;
+  color: #B23B3B;
+  border: 1.5px solid #FFD6D6;
+  border-radius: 10px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+.remove-modulo-btn:hover { background: #FFE0E0; }
+
+.add-modulo-btn {
+  margin-top: 8px;
+  width: 100%;
+  background: #FBF5FF;
+  color: #A543FA;
+  border: 1.5px dashed #D9B8F5;
+  border-radius: 12px;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.add-modulo-btn:hover { background: #F4E5FF; border-color: #A543FA; }
+
 /* CARD */
 .cw-card {
   background: #fff;

@@ -256,9 +256,13 @@ function renderCotacao() {
 }
 
 /* ──────────────────────────────────────────────────────────
-   ABA 2 — MIGRAÇÃO DE PLANO (ajuste proporcional)
-   Fórmula: valor_a_pagar = (valor_novo - valor_atual) × (dias_restantes / dias_totais)
-   dias_totais     = fim_do_ciclo - inicio_do_ciclo
+   ABA 2 — MIGRAÇÃO DE PLANO
+   A mudança abre um novo período a partir da data da mudança, e
+   o que foi pago e não usado do ciclo atual vira crédito:
+   credito         = valor_atual × (dias_restantes / dias_totais)
+   valor_a_pagar   = valor_novo (ciclo cheio) - credito
+   parcela         = valor_a_pagar / nº de meses do novo ciclo
+   dias_totais     = (fim_do_ciclo - inicio_do_ciclo) + 1
    dias_restantes  = (fim_do_ciclo - data_da_mudanca) + 1
    ────────────────────────────────────────────────────────── */
 function initMigracaoForm() {
@@ -317,20 +321,21 @@ function calcularMigracao() {
   if (!inicio || !mudanca) return null;
 
   const fim = fimDoCiclo(inicio, mesesDe(recAtual));
-  const diasTotais = diffDias(fim, inicio);
+  const diasTotais = diffDias(fim, inicio) + 1;
   const diasRestantes = diffDias(fim, mudanca) + 1;
 
   const valorAtual = PLANOS[planoAtual].precos[recAtual];
   const valorNovo = PLANOS[planoNovo].precos[recNova];
+  const mesesNovo = mesesDe(recNova);
+  const fimNovo = fimDoCiclo(mudanca, mesesNovo);
 
   const fora = mudanca < inicio || mudanca > fim;
   const fracao = diasTotais > 0 ? diasRestantes / diasTotais : 0;
 
   const credito = valorAtual * fracao;
-  const debito = valorNovo * fracao;
-  const valorAPagar = debito - credito;
+  const valorAPagar = valorNovo - credito;
 
-  return { fim, diasTotais, diasRestantes, valorAtual, valorNovo, fracao, credito, debito, valorAPagar, fora, inicio };
+  return { fim, diasTotais, diasRestantes, valorAtual, valorNovo, fracao, credito, valorAPagar, fora, inicio, mudanca, fimNovo, mesesNovo };
 }
 
 function renderMigracao() {
@@ -370,44 +375,71 @@ function renderMigracao() {
   const recAtualLabel = RECORRENCIAS.find((r) => r.key === recAtual).label;
   const recNovaLabel = RECORRENCIAS.find((r) => r.key === recNova).label;
 
-  const totalLabel = calc.valorAPagar >= 0 ? "Valor a pagar" : "Valor a favor do cliente";
-  const totalColor = calc.valorAPagar >= 0 ? "var(--brand-ink)" : "var(--credit)";
-
-  ticket.innerHTML = `
+  ticket.innerHTML =
+    rowsCicloAtual(`Plano atual (${PLANOS[planoAtual].label}, ${recAtualLabel})`, calc.valorAtual, calc) +
+    `
     <div class="cw-row">
-      <span class="cw-row-label">Plano atual (${PLANOS[planoAtual].label}, ${recAtualLabel})</span>
-      <span class="cw-row-value">${fmt(calc.valorAtual)}</span>
-    </div>
-    <div class="cw-row">
-      <span class="cw-row-label">Plano novo (${PLANOS[planoNovo].label}, ${recNovaLabel})</span>
-      <span class="cw-row-value">${fmt(calc.valorNovo)}</span>
-    </div>
-    <div class="cw-row">
-      <span class="cw-row-label">Dias restantes / dias do ciclo</span>
-      <span class="cw-row-value">${calc.diasRestantes} / ${calc.diasTotais}</span>
-    </div>
-    <div class="cw-row">
-      <span class="cw-row-label">Crédito proporcional (plano atual)</span>
+      <span class="cw-row-label">Crédito não utilizado</span>
       <span class="cw-row-value" style="color:var(--credit);">− ${fmt(calc.credito)}</span>
+    </div>` +
+    rowsNovoPeriodo(`Plano novo (${PLANOS[planoNovo].label}, ${recNovaLabel})`, calc.valorNovo, calc) +
+    rowsTotalMigracao(calc.valorAPagar, calc.mesesNovo);
+}
+
+/* Blocos do resumo compartilhados pelas duas sub-abas de migração */
+function rowsCicloAtual(label, valor, calc) {
+  return `
+    <div class="cw-row">
+      <span class="cw-row-label">${escapeHtml(label)}</span>
+      <span class="cw-row-value">${fmt(valor)}</span>
     </div>
     <div class="cw-row">
-      <span class="cw-row-label">Débito proporcional (plano novo)</span>
-      <span class="cw-row-value">${fmt(calc.debito)}</span>
+      <span class="cw-row-label">Ciclo atual</span>
+      <span class="cw-row-value">${fmtDataBR(calc.inicio)} a ${fmtDataBR(calc.fim)}</span>
     </div>
-    <div class="cw-total-row">
-      <span class="cw-total-label">${totalLabel}</span>
-      <span class="cw-total-value" style="color:${totalColor};">${fmt(Math.abs(calc.valorAPagar))}</span>
+    <div class="cw-row">
+      <span class="cw-row-label">Dias não utilizados</span>
+      <span class="cw-row-value">${calc.diasRestantes} de ${calc.diasTotais}</span>
     </div>`;
+}
+
+function rowsNovoPeriodo(label, valor, calc) {
+  return `
+    <div class="cw-row">
+      <span class="cw-row-label">Novo período</span>
+      <span class="cw-row-value">${fmtDataBR(calc.mudanca)} a ${fmtDataBR(calc.fimNovo)}</span>
+    </div>
+    <div class="cw-row">
+      <span class="cw-row-label">${escapeHtml(label)}</span>
+      <span class="cw-row-value">${fmt(valor)}</span>
+    </div>`;
+}
+
+function rowsTotalMigracao(valorAPagar, mesesNovo) {
+  const aPagar = valorAPagar >= 0;
+  let html = `
+    <div class="cw-total-row">
+      <span class="cw-total-label">${aPagar ? "Valor a pagar" : "Saldo a favor do cliente"}</span>
+      <span class="cw-total-value" style="color:${aPagar ? "var(--brand-ink)" : "var(--credit)"};">${fmt(Math.abs(valorAPagar))}</span>
+    </div>`;
+  if (aPagar && mesesNovo > 1) {
+    html += `
+    <div class="cw-row">
+      <span class="cw-row-label">Parcelado em ${mesesNovo}×</span>
+      <span class="cw-row-value">${fmt(valorAPagar / mesesNovo)}/mês</span>
+    </div>`;
+  }
+  return html;
 }
 
 /* ──────────────────────────────────────────────────────────
    ABA 2.2 — MIGRAÇÃO COM VALORES PERSONALIZADOS
-   Mesmo princípio da migração padrão (crédito/débito proporcional
-   aos dias restantes do ciclo), mas o valor do plano atual (e,
+   Mesmo princípio da migração padrão (crédito do que não foi usado
+   + novo período cheio), mas o valor do plano atual (e,
    opcionalmente, do plano novo) é digitado manualmente — usado
    quando o cliente está numa tabela antiga/negociada.
-   Módulos com valor antigo entram no mesmo cálculo proporcional,
-   comparando com o módulo novo correspondente (se houver).
+   Módulos com valor antigo geram crédito pelos dias restantes, e o
+   módulo novo correspondente (se houver) é cobrado no novo período.
    ────────────────────────────────────────────────────────── */
 const escapeHtml = (str) =>
   String(str ?? "").replace(/[&<>"']/g, (c) => ({
@@ -548,7 +580,7 @@ function calcularMigracaoPersonalizada() {
 
   const mesesAtual = mesesDe(s.recAtual);
   const fim = fimDoCiclo(inicio, mesesAtual);
-  const diasTotais = diffDias(fim, inicio);
+  const diasTotais = diffDias(fim, inicio) + 1;
   const diasRestantes = diffDias(fim, mudanca) + 1;
   const fora = mudanca < inicio || mudanca > fim;
   const fracao = diasTotais > 0 ? diasRestantes / diasTotais : 0;
@@ -571,9 +603,9 @@ function calcularMigracaoPersonalizada() {
     recNovaLabel = RECORRENCIAS.find((r) => r.key === s.recNova).label;
   }
 
+  const fimNovo = fimDoCiclo(mudanca, mesesNovo);
   const creditoPlano = valorAtualCiclo * fracao;
-  const debitoPlano = valorNovoCiclo * fracao;
-  const diffPlano = debitoPlano - creditoPlano;
+  const diffPlano = valorNovoCiclo - creditoPlano;
 
   const modulos = s.modulos
     .map((m) => {
@@ -588,7 +620,7 @@ function calcularMigracaoPersonalizada() {
       if (m.moduloNovoKey) {
         const moduloNovo = MODULOS.find((mod) => mod.key === m.moduloNovoKey);
         nomeModuloNovo = moduloNovo.label;
-        debitoModulo = moduloNovo.mensal * mesesNovo * fracao;
+        debitoModulo = moduloNovo.mensal * mesesNovo;
       }
 
       const diffModulo = debitoModulo - creditoModulo;
@@ -605,9 +637,9 @@ function calcularMigracaoPersonalizada() {
     fim, diasTotais, diasRestantes, fora,
     valorAtualCiclo, nomeAtual,
     valorNovoCiclo, nomeNovo, recNovaLabel,
-    creditoPlano, debitoPlano, diffPlano,
+    creditoPlano, diffPlano,
     modulos, totalGeral,
-    inicio,
+    inicio, mudanca, fimNovo, mesesNovo,
   };
 }
 
@@ -643,27 +675,14 @@ function renderMigracaoPersonalizada() {
   emptyBox.style.display = "none";
   ticket.style.display = "";
 
-  let rowsHtml = `
+  let rowsHtml =
+    rowsCicloAtual(calc.nomeAtual, calc.valorAtualCiclo, calc) +
+    `
     <div class="cw-row">
-      <span class="cw-row-label">${escapeHtml(calc.nomeAtual)}</span>
-      <span class="cw-row-value">${fmt(calc.valorAtualCiclo)}</span>
-    </div>
-    <div class="cw-row">
-      <span class="cw-row-label">${escapeHtml(calc.nomeNovo)} (${calc.recNovaLabel})</span>
-      <span class="cw-row-value">${fmt(calc.valorNovoCiclo)}</span>
-    </div>
-    <div class="cw-row">
-      <span class="cw-row-label">Dias restantes / dias do ciclo</span>
-      <span class="cw-row-value">${calc.diasRestantes} / ${calc.diasTotais}</span>
-    </div>
-    <div class="cw-row">
-      <span class="cw-row-label">Crédito proporcional (plano atual)</span>
+      <span class="cw-row-label">Crédito não utilizado</span>
       <span class="cw-row-value" style="color:var(--credit);">− ${fmt(calc.creditoPlano)}</span>
-    </div>
-    <div class="cw-row">
-      <span class="cw-row-label">Débito proporcional (plano novo)</span>
-      <span class="cw-row-value">${fmt(calc.debitoPlano)}</span>
-    </div>`;
+    </div>` +
+    rowsNovoPeriodo(`${calc.nomeNovo} (${calc.recNovaLabel})`, calc.valorNovoCiclo, calc);
 
   calc.modulos.forEach((m) => {
     const sinal = m.diffModulo >= 0 ? "+" : "−";
@@ -675,14 +694,7 @@ function renderMigracaoPersonalizada() {
     </div>`;
   });
 
-  const totalLabel = calc.totalGeral >= 0 ? "Valor a pagar" : "Valor a favor do cliente";
-  const totalColor = calc.totalGeral >= 0 ? "var(--brand-ink)" : "var(--credit)";
-
-  rowsHtml += `
-    <div class="cw-total-row">
-      <span class="cw-total-label">${totalLabel}</span>
-      <span class="cw-total-value" style="color:${totalColor};">${fmt(Math.abs(calc.totalGeral))}</span>
-    </div>`;
+  rowsHtml += rowsTotalMigracao(calc.totalGeral, calc.mesesNovo);
 
   ticket.innerHTML = rowsHtml;
 }

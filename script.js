@@ -82,6 +82,8 @@ const state = {
     planoNovo: "mesas",
     recNova: "anual",
     dataMudanca: "",
+    modulosAtuais: [], // keys dos módulos na mesma fatura do plano atual
+    modulosNovos: [],
   },
   migracaoPersonalizada: {
     nomeAtual: "",
@@ -158,26 +160,9 @@ function initCotacaoForm() {
   });
 
   // Checkboxes de módulos
-  const modWrap = document.getElementById("cot-modulos");
-  modWrap.innerHTML = MODULOS.map(
-    (m) => `
-    <label class="cw-check" data-mod="${m.key}">
-      <span class="modulo-left">
-        <input type="checkbox" class="modulo-checkbox" data-mod-checkbox="${m.key}">
-        <span class="modulo-label">${m.label}</span>
-      </span>
-      <span class="modulo-price">${fmt(m.mensal)}/mês</span>
-    </label>`
-  ).join("");
-  modWrap.querySelectorAll("input[type=checkbox]").forEach((cb) => {
-    cb.addEventListener("change", () => {
-      const key = cb.dataset.modCheckbox;
-      const idx = state.cotacao.modulos.indexOf(key);
-      if (idx >= 0) state.cotacao.modulos.splice(idx, 1);
-      else state.cotacao.modulos.push(key);
-      renderDescontosModulos();
-      renderCotacao();
-    });
+  initModuloChecks("cot-modulos", state.cotacao.modulos, () => {
+    renderDescontosModulos();
+    renderCotacao();
   });
 
   // Descontos (opcional)
@@ -192,6 +177,30 @@ function initCotacaoForm() {
     renderCotacao();
   });
   renderDescontosModulos();
+}
+
+// Lista de módulos com checkbox; `selecionados` é o array de keys do estado, alterado no lugar
+function initModuloChecks(wrapId, selecionados, onChange) {
+  const wrap = document.getElementById(wrapId);
+  wrap.innerHTML = MODULOS.map(
+    (m) => `
+    <label class="cw-check" data-mod="${m.key}">
+      <span class="modulo-left">
+        <input type="checkbox" class="modulo-checkbox" data-mod-checkbox="${m.key}">
+        <span class="modulo-label">${m.label}</span>
+      </span>
+      <span class="modulo-price">${fmt(m.mensal)}/mês</span>
+    </label>`
+  ).join("");
+  wrap.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+    cb.addEventListener("change", () => {
+      const idx = selecionados.indexOf(cb.dataset.modCheckbox);
+      if (idx >= 0) selecionados.splice(idx, 1);
+      else selecionados.push(cb.dataset.modCheckbox);
+      cb.closest("label").classList.toggle("cw-check-on", cb.checked);
+      onChange();
+    });
+  });
 }
 
 // Percentual digitado → número entre 0 e 100 (vazio ou inválido = 0)
@@ -238,14 +247,6 @@ function renderCotacao() {
   // Estado visual dos botões de recorrência
   document.querySelectorAll("#cot-recorrencia button").forEach((btn) => {
     btn.classList.toggle("cw-check-on", btn.dataset.rec === recorrencia);
-  });
-
-  // Estado visual dos módulos
-  document.querySelectorAll("#cot-modulos label").forEach((label) => {
-    const key = label.dataset.mod;
-    const ativo = modulos.includes(key);
-    label.classList.toggle("cw-check-on", ativo);
-    label.querySelector("input").checked = ativo;
   });
 
   const { descontos } = state.cotacao;
@@ -322,6 +323,9 @@ function renderCotacao() {
    o que foi pago e não usado do ciclo atual vira crédito:
    credito         = valor_atual × (dias_restantes / dias_totais)
    valor_a_pagar   = valor_novo (ciclo cheio) - credito
+   Módulos da mesma fatura seguem a mesma regra: os atuais geram
+   crédito (mensal × meses do ciclo atual × fração) e os do novo
+   plano são cobrados cheios (mensal × meses do novo ciclo).
    parcela         = valor_a_pagar / nº de meses do novo ciclo
    dias_totais     = (fim_do_ciclo - inicio_do_ciclo) + 1
    dias_restantes  = (fim_do_ciclo - data_da_mudanca) + 1
@@ -372,6 +376,9 @@ function initMigracaoForm() {
     state.migracao.dataMudanca = e.target.value;
     renderMigracao();
   });
+
+  initModuloChecks("mig-modulos-atual", state.migracao.modulosAtuais, renderMigracao);
+  initModuloChecks("mig-modulos-novo", state.migracao.modulosNovos, renderMigracao);
 }
 
 function calcularMigracao() {
@@ -393,10 +400,18 @@ function calcularMigracao() {
   const fora = mudanca < inicio || mudanca > fim;
   const fracao = diasTotais > 0 ? diasRestantes / diasTotais : 0;
 
-  const credito = valorAtual * fracao;
-  const valorAPagar = valorNovo - credito;
+  const mesesAtual = mesesDe(recAtual);
+  const modulosAtuais = MODULOS.filter((m) => state.migracao.modulosAtuais.includes(m.key))
+    .map((m) => ({ ...m, credito: m.mensal * mesesAtual * fracao }));
+  const modulosNovos = MODULOS.filter((m) => state.migracao.modulosNovos.includes(m.key))
+    .map((m) => ({ ...m, valorCiclo: m.mensal * mesesNovo }));
 
-  return { fim, diasTotais, diasRestantes, valorAtual, valorNovo, fracao, credito, valorAPagar, fora, inicio, mudanca, fimNovo, mesesNovo };
+  const credito = valorAtual * fracao;
+  const creditoModulos = modulosAtuais.reduce((acc, m) => acc + m.credito, 0);
+  const valorModulosNovos = modulosNovos.reduce((acc, m) => acc + m.valorCiclo, 0);
+  const valorAPagar = valorNovo + valorModulosNovos - credito - creditoModulos;
+
+  return { fim, diasTotais, diasRestantes, valorAtual, valorNovo, fracao, credito, valorAPagar, fora, inicio, mudanca, fimNovo, mesesNovo, modulosAtuais, modulosNovos };
 }
 
 function renderMigracao() {
@@ -443,7 +458,17 @@ function renderMigracao() {
       <span class="cw-row-label">Crédito não utilizado</span>
       <span class="cw-row-value" style="color:var(--credit);">− ${fmt(calc.credito)}</span>
     </div>` +
+    calc.modulosAtuais.map((m) => `
+    <div class="cw-row">
+      <span class="cw-row-label">Crédito não utilizado, módulo ${m.label}</span>
+      <span class="cw-row-value" style="color:var(--credit);">− ${fmt(m.credito)}</span>
+    </div>`).join("") +
     rowsNovoPeriodo(`Plano novo (${PLANOS[planoNovo].label}, ${recNovaLabel})`, calc.valorNovo, calc) +
+    calc.modulosNovos.map((m) => `
+    <div class="cw-row">
+      <span class="cw-row-label">Módulo ${m.label} (${calc.mesesNovo}× ${fmt(m.mensal)})</span>
+      <span class="cw-row-value">${fmt(m.valorCiclo)}</span>
+    </div>`).join("") +
     rowsTotalMigracao(calc.valorAPagar, calc.mesesNovo);
 }
 

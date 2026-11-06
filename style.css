@@ -225,35 +225,21 @@ h1 {
 
 .desc-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 110px;
+  grid-template-columns: minmax(0, 1fr) 140px;
   gap: 12px;
   align-items: center;
 }
 
-/* MÓDULOS PERSONALIZADOS */
-.modulo-custom-row {
-  border-top: 1px dashed var(--line-strong);
-  padding: 12px 0 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.modulo-custom-row:first-child { border-top: none; padding-top: 0; }
-
-.modulo-custom-top {
+/* MÓDULOS ANTIGOS FORA DA LISTA (valores personalizados) */
+.extra-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px;
-}
-
-.modulo-custom-bottom {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) 140px 46px;
   gap: 8px;
   align-items: center;
 }
 
-.remove-modulo-btn {
+.remove-extra-btn {
+  min-height: 46px;
   background: var(--danger-wash);
   color: var(--danger);
   border: 1.5px solid var(--danger-line);
@@ -262,17 +248,15 @@ h1 {
   font-weight: 800;
   font-size: 18px;
   line-height: 1;
-  min-width: 44px;
-  min-height: 44px;
   cursor: pointer;
-  transition: background-color .15s var(--ease), border-color .15s var(--ease);
+  transition: background-color .15s var(--ease);
 }
-.remove-modulo-btn:hover { background: var(--danger-line); }
-.remove-modulo-btn:active { transform: scale(0.96); }
+.remove-extra-btn:hover { background: var(--danger-line); }
 
-.add-modulo-btn {
-  margin-top: 10px;
+.add-extra-btn {
+  margin-top: 8px;
   width: 100%;
+  min-height: 46px;
   background: transparent;
   color: var(--brand-ink);
   border: 1.5px dashed var(--line-strong);
@@ -280,12 +264,21 @@ h1 {
   font-family: var(--font);
   font-weight: 800;
   font-size: 15px;
-  padding: 11px 12px;
   cursor: pointer;
   transition: background-color .15s var(--ease), border-color .15s var(--ease);
 }
-.add-modulo-btn:hover { background: var(--brand-wash); border-color: var(--brand); }
-.add-modulo-btn:active { transform: scale(0.99); }
+.add-extra-btn:hover { background: var(--brand-wash); border-color: var(--brand); }
+
+.remove-extra-btn:focus-visible,
+.add-extra-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  transition: none;
+}
+
+@media (max-width: 420px) {
+  .extra-row { grid-template-columns: minmax(0, 1fr) 110px 46px; }
+}
 
 /* LAYOUT: o formulário é o único painel; o cupom fica ao lado */
 .cw-card {
@@ -324,7 +317,6 @@ h1 {
 }
 
 @media (max-width: 420px) {
-  .modulo-custom-top { grid-template-columns: minmax(0, 1fr); }
   .tabs { display: flex; }
   .cw-tab { flex: 1; justify-content: center; padding: 10px 12px; font-size: 14px; white-space: nowrap; }
 }
@@ -462,8 +454,6 @@ h1 {
 .cw-tab:focus-visible,
 .cw-subtab:focus-visible,
 .cw-check:focus-visible,
-.add-modulo-btn:focus-visible,
-.remove-modulo-btn:focus-visible,
 .modulo-checkbox:focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
@@ -596,7 +586,7 @@ h1 {
   *, *::before, *::after {
     transition-duration: 0.01ms !important;
   }
-  .cw-tab:active, .recorrencia-btn:active, .add-modulo-btn:active, .remove-modulo-btn:active {
+  .cw-tab:active, .recorrencia-btn:active {
     transform: none;
   }
 }

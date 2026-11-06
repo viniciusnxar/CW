@@ -97,11 +97,14 @@ const state = {
     mensalNovo: "",
     recNovaCustom: "mensal",
     dataMudanca: "",
-    modulos: [], // { id, nomeAntigo, mensalAntigo, moduloNovoKey }
+    modulosAtuais: [], // keys dos módulos que o cliente já usa
+    valoresModulosAtuais: {}, // key → valor pago no ciclo (vazio = tabela)
+    modulosExtras: [], // { id, nome, valor } — módulos antigos fora do catálogo atual
+    modulosNovos: [], // keys, sempre com valor da tabela
   },
 };
 
-let migPersonalizadaModuloSeq = 0;
+let moduloExtraSeq = 0;
 
 /* ──────────────────────────────────────────────────────────
    TABS
@@ -453,23 +456,28 @@ function renderMigracao() {
 
   ticket.innerHTML =
     rowsCicloAtual(`Plano atual (${PLANOS[planoAtual].label}, ${recAtualLabel})`, calc.valorAtual, calc) +
-    `
-    <div class="cw-row">
-      <span class="cw-row-label">Crédito não utilizado</span>
-      <span class="cw-row-value" style="color:var(--credit);">− ${fmt(calc.credito)}</span>
-    </div>` +
-    calc.modulosAtuais.map((m) => `
-    <div class="cw-row">
-      <span class="cw-row-label">Crédito não utilizado, módulo ${m.label}</span>
-      <span class="cw-row-value" style="color:var(--credit);">− ${fmt(m.credito)}</span>
-    </div>`).join("") +
+    rowsCreditos(calc.credito, calc.modulosAtuais) +
     rowsNovoPeriodo(`Plano novo (${PLANOS[planoNovo].label}, ${recNovaLabel})`, calc.valorNovo, calc) +
-    calc.modulosNovos.map((m) => `
-    <div class="cw-row">
-      <span class="cw-row-label">Módulo ${m.label} (${calc.mesesNovo}× ${fmt(m.mensal)})</span>
-      <span class="cw-row-value">${fmt(m.valorCiclo)}</span>
-    </div>`).join("") +
+    rowsModulosNovos(calc.modulosNovos, calc.mesesNovo) +
     rowsTotalMigracao(calc.valorAPagar, calc.mesesNovo);
+}
+
+function rowsCreditos(creditoPlano, modulosAtuais) {
+  const row = (label, valor) => `
+    <div class="cw-row">
+      <span class="cw-row-label">${label}</span>
+      <span class="cw-row-value" style="color:var(--credit);">− ${fmt(valor)}</span>
+    </div>`;
+  return row("Crédito não utilizado", creditoPlano) +
+    modulosAtuais.map((m) => row(`Crédito não utilizado, módulo ${escapeHtml(m.label)}`, m.credito)).join("");
+}
+
+function rowsModulosNovos(modulosNovos, meses) {
+  return modulosNovos.map((m) => `
+    <div class="cw-row">
+      <span class="cw-row-label">Módulo ${m.label} (${meses}× ${fmt(m.mensal)})</span>
+      <span class="cw-row-value">${fmt(m.valorCiclo)}</span>
+    </div>`).join("");
 }
 
 /* Blocos do resumo compartilhados pelas duas sub-abas de migração */
@@ -526,8 +534,9 @@ function rowsTotalMigracao(valorAPagar, mesesNovo) {
    + novo período cheio), mas o valor do plano atual (e,
    opcionalmente, do plano novo) é digitado manualmente — usado
    quando o cliente está numa tabela antiga/negociada.
-   Módulos com valor antigo geram crédito pelos dias restantes, e o
-   módulo novo correspondente (se houver) é cobrado no novo período.
+   Módulos atuais: o valor pago no ciclo é digitado (vazio = tabela)
+   e gera crédito pelos dias restantes. Módulos novos: sempre com o
+   valor da tabela, cobrados cheios no novo período.
    ────────────────────────────────────────────────────────── */
 const escapeHtml = (str) =>
   String(str ?? "").replace(/[&<>"']/g, (c) => ({
@@ -559,6 +568,7 @@ function initMigracaoPersonalizadaForm() {
   });
   document.getElementById("migp-rec-atual").addEventListener("change", (e) => {
     s.recAtual = e.target.value;
+    renderValoresModulosAtuais(); // o valor de tabela sugerido depende da recorrência
     renderMigracaoPersonalizada();
   });
   document.getElementById("migp-inicio").addEventListener("change", (e) => {
@@ -596,62 +606,78 @@ function initMigracaoPersonalizadaForm() {
     renderMigracaoPersonalizada();
   });
 
-  document.getElementById("migp-add-modulo").addEventListener("click", () => {
-    s.modulos.push({ id: ++migPersonalizadaModuloSeq, nomeAntigo: "", mensalAntigo: "", moduloNovoKey: "" });
-    renderModulosPersonalizadosList();
+  initModuloChecks("migp-modulos-atual", s.modulosAtuais, () => {
+    renderValoresModulosAtuais();
+    renderMigracaoPersonalizada();
+  });
+  initModuloChecks("migp-modulos-novo", s.modulosNovos, renderMigracaoPersonalizada);
+
+  document.getElementById("migp-add-extra").addEventListener("click", () => {
+    s.modulosExtras.push({ id: ++moduloExtraSeq, nome: "", valor: "" });
+    renderModulosExtras();
     renderMigracaoPersonalizada();
   });
 }
 
-function renderModulosPersonalizadosList() {
+// Linhas livres (nome + valor pago no ciclo) para módulos antigos que não
+// existem mais no catálogo. Só re-renderiza ao adicionar/remover.
+function renderModulosExtras() {
   const s = state.migracaoPersonalizada;
-  const wrap = document.getElementById("migp-modulos-list");
+  const wrap = document.getElementById("migp-modulos-extras");
 
-  if (s.modulos.length === 0) {
-    wrap.innerHTML = "";
-    return;
-  }
-
-  wrap.innerHTML = s.modulos
+  wrap.innerHTML = s.modulosExtras
     .map(
       (m) => `
-    <div class="modulo-custom-row" data-modulo-id="${m.id}">
-      <div class="modulo-custom-top">
-        <input type="text" class="cw-input migp-mod-nome" placeholder="Nome do módulo antigo" value="${escapeHtml(m.nomeAntigo)}">
-        <input type="number" step="0.01" min="0" class="cw-input migp-mod-mensal" placeholder="Valor mensal antigo (R$)" value="${escapeHtml(m.mensalAntigo)}">
-      </div>
-      <div class="modulo-custom-bottom">
-        <select class="cw-select migp-mod-novo">
-          <option value="">Nenhum (módulo removido)</option>
-          ${MODULOS.map(
-            (mod) =>
-              `<option value="${mod.key}" ${mod.key === m.moduloNovoKey ? "selected" : ""}>${mod.label} (${fmt(mod.mensal)}/mês)</option>`
-          ).join("")}
-        </select>
-        <button type="button" class="remove-modulo-btn" title="Remover módulo" aria-label="Remover módulo">×</button>
-      </div>
+    <div class="extra-row" data-extra-id="${m.id}">
+      <input class="cw-input" type="text" placeholder="Nome do módulo antigo" aria-label="Nome do módulo antigo"
+        data-campo="nome" value="${escapeHtml(m.nome)}">
+      <input class="cw-input" type="number" min="0" step="0.01" placeholder="Valor no ciclo"
+        aria-label="Valor pago no ciclo (R$)" data-campo="valor" value="${escapeHtml(m.valor)}">
+      <button type="button" class="remove-extra-btn" aria-label="Remover módulo">×</button>
     </div>`
     )
     .join("");
 
-  wrap.querySelectorAll(".modulo-custom-row").forEach((row) => {
-    const id = Number(row.dataset.moduloId);
-    const modulo = s.modulos.find((m) => m.id === id);
+  wrap.querySelectorAll(".extra-row").forEach((row) => {
+    const extra = s.modulosExtras.find((m) => m.id === Number(row.dataset.extraId));
+    row.querySelectorAll("input").forEach((input) => {
+      input.addEventListener("input", () => {
+        extra[input.dataset.campo] = input.value;
+        renderMigracaoPersonalizada();
+      });
+    });
+    row.querySelector(".remove-extra-btn").addEventListener("click", () => {
+      s.modulosExtras = s.modulosExtras.filter((m) => m !== extra);
+      renderModulosExtras();
+      renderMigracaoPersonalizada();
+    });
+  });
+}
 
-    row.querySelector(".migp-mod-nome").addEventListener("input", (e) => {
-      modulo.nomeAntigo = e.target.value;
-    });
-    row.querySelector(".migp-mod-mensal").addEventListener("input", (e) => {
-      modulo.mensalAntigo = e.target.value;
-      renderMigracaoPersonalizada();
-    });
-    row.querySelector(".migp-mod-novo").addEventListener("change", (e) => {
-      modulo.moduloNovoKey = e.target.value;
-      renderMigracaoPersonalizada();
-    });
-    row.querySelector(".remove-modulo-btn").addEventListener("click", () => {
-      s.modulos = s.modulos.filter((m) => m.id !== id);
-      renderModulosPersonalizadosList();
+// Um campo "valor pago no ciclo" por módulo atual marcado. Só re-renderiza
+// quando a seleção ou a recorrência mudam, para não perder o foco ao digitar.
+function renderValoresModulosAtuais() {
+  const s = state.migracaoPersonalizada;
+  const box = document.getElementById("migp-valores-modulos-box");
+  const wrap = document.getElementById("migp-valores-modulos");
+  const meses = mesesDe(s.recAtual);
+
+  box.style.display = s.modulosAtuais.length ? "" : "none";
+  wrap.innerHTML = MODULOS.filter((m) => s.modulosAtuais.includes(m.key))
+    .map(
+      (m) => `
+    <div class="desc-row">
+      <label class="modulo-label" for="migp-valor-mod-${m.key}">${m.label}</label>
+      <input id="migp-valor-mod-${m.key}" class="cw-input" type="number" min="0" step="0.01"
+        placeholder="${(m.mensal * meses).toFixed(2)}" data-valor-mod="${m.key}"
+        value="${escapeHtml(s.valoresModulosAtuais[m.key] ?? "")}">
+    </div>`
+    )
+    .join("");
+
+  wrap.querySelectorAll("input[data-valor-mod]").forEach((input) => {
+    input.addEventListener("input", () => {
+      s.valoresModulosAtuais[input.dataset.valorMod] = input.value;
       renderMigracaoPersonalizada();
     });
   });
@@ -674,7 +700,7 @@ function calcularMigracaoPersonalizada() {
   const fracao = diasTotais > 0 ? diasRestantes / diasTotais : 0;
 
   const recAtualLabel = RECORRENCIAS.find((r) => r.key === s.recAtual).label;
-  const nomeAtual = `${s.nomeAtual.trim() || "Plano atual (personalizado)"} (${recAtualLabel})`;
+  const nomeAtual = `${s.nomeAtual.trim() || "Plano personalizado"} (${recAtualLabel})`;
 
   let valorNovoCiclo, nomeNovo, recNovaLabel, mesesNovo;
   if (s.novoPersonalizado) {
@@ -694,38 +720,30 @@ function calcularMigracaoPersonalizada() {
   const creditoPlano = valorAtualCiclo * fracao;
   const diffPlano = valorNovoCiclo - creditoPlano;
 
-  const modulos = s.modulos
-    .map((m) => {
-      const mensalAntigoMod = parseFloat(m.mensalAntigo);
-      if (!Number.isFinite(mensalAntigoMod)) return null;
+  const modulosAtuais = MODULOS.filter((m) => s.modulosAtuais.includes(m.key)).map((m) => {
+    const digitado = parseFloat(s.valoresModulosAtuais[m.key]);
+    const valorPago = Number.isFinite(digitado) ? digitado : m.mensal * mesesAtual;
+    return { ...m, credito: valorPago * fracao };
+  });
+  s.modulosExtras.forEach((m) => {
+    const valorPago = parseFloat(m.valor);
+    if (Number.isFinite(valorPago)) {
+      modulosAtuais.push({ label: m.nome.trim() || "antigo", credito: valorPago * fracao });
+    }
+  });
+  const modulosNovos = MODULOS.filter((m) => s.modulosNovos.includes(m.key))
+    .map((m) => ({ ...m, valorCiclo: m.mensal * mesesNovo }));
 
-      const valorAntigoCiclo = mensalAntigoMod * mesesAtual;
-      const creditoModulo = valorAntigoCiclo * fracao;
-
-      let debitoModulo = 0;
-      let nomeModuloNovo = "Removido (sem substituto)";
-      if (m.moduloNovoKey) {
-        const moduloNovo = MODULOS.find((mod) => mod.key === m.moduloNovoKey);
-        nomeModuloNovo = moduloNovo.label;
-        debitoModulo = moduloNovo.mensal * mesesNovo;
-      }
-
-      const diffModulo = debitoModulo - creditoModulo;
-      const nomeAntigoDisplay = m.nomeAntigo.trim() || "Módulo antigo";
-
-      return { nomeAntigoDisplay, nomeModuloNovo, creditoModulo, debitoModulo, diffModulo };
-    })
-    .filter(Boolean);
-
-  const totalModulos = modulos.reduce((acc, m) => acc + m.diffModulo, 0);
-  const totalGeral = diffPlano + totalModulos;
+  const creditoModulos = modulosAtuais.reduce((acc, m) => acc + m.credito, 0);
+  const valorModulosNovos = modulosNovos.reduce((acc, m) => acc + m.valorCiclo, 0);
+  const totalGeral = diffPlano + valorModulosNovos - creditoModulos;
 
   return {
     fim, diasTotais, diasRestantes, fora,
     valorAtualCiclo, nomeAtual,
     valorNovoCiclo, nomeNovo, recNovaLabel,
     creditoPlano, diffPlano,
-    modulos, totalGeral,
+    modulosAtuais, modulosNovos, totalGeral,
     inicio, mudanca, fimNovo, mesesNovo,
   };
 }
@@ -762,28 +780,12 @@ function renderMigracaoPersonalizada() {
   emptyBox.style.display = "none";
   ticket.style.display = "";
 
-  let rowsHtml =
+  ticket.innerHTML =
     rowsCicloAtual(calc.nomeAtual, calc.valorAtualCiclo, calc) +
-    `
-    <div class="cw-row">
-      <span class="cw-row-label">Crédito não utilizado</span>
-      <span class="cw-row-value" style="color:var(--credit);">− ${fmt(calc.creditoPlano)}</span>
-    </div>` +
-    rowsNovoPeriodo(`${calc.nomeNovo} (${calc.recNovaLabel})`, calc.valorNovoCiclo, calc);
-
-  calc.modulos.forEach((m) => {
-    const sinal = m.diffModulo >= 0 ? "+" : "−";
-    const cor = m.diffModulo >= 0 ? "var(--ink)" : "var(--credit)";
-    rowsHtml += `
-    <div class="cw-row">
-      <span class="cw-row-label">Módulo: ${escapeHtml(m.nomeAntigoDisplay)} → ${escapeHtml(m.nomeModuloNovo)}</span>
-      <span class="cw-row-value" style="color:${cor};">${sinal} ${fmt(Math.abs(m.diffModulo))}</span>
-    </div>`;
-  });
-
-  rowsHtml += rowsTotalMigracao(calc.totalGeral, calc.mesesNovo);
-
-  ticket.innerHTML = rowsHtml;
+    rowsCreditos(calc.creditoPlano, calc.modulosAtuais) +
+    rowsNovoPeriodo(`${calc.nomeNovo} (${calc.recNovaLabel})`, calc.valorNovoCiclo, calc) +
+    rowsModulosNovos(calc.modulosNovos, calc.mesesNovo) +
+    rowsTotalMigracao(calc.totalGeral, calc.mesesNovo);
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -797,7 +799,7 @@ document.addEventListener("DOMContentLoaded", () => {
   renderMigracao();
 
   initMigracaoPersonalizadaForm();
-  renderModulosPersonalizadosList();
+  renderValoresModulosAtuais();
   renderMigracaoPersonalizada();
 
   if (window.lucide) {

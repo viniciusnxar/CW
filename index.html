@@ -249,12 +249,22 @@
                 <div>
                   <span class="cw-label">
                     <i data-lucide="package" class="inline-icon"></i>
-                    Módulos com valor antigo (opcional)
+                    Módulos que o cliente já usa (opcional)
                   </span>
-                  <div id="migp-modulos-list" class="stack"></div>
-                  <button type="button" id="migp-add-modulo" class="add-modulo-btn">
-                    + Adicionar módulo personalizado
-                  </button>
+                  <div id="migp-modulos-atual" class="stack"></div>
+                </div>
+
+                <div id="migp-valores-modulos-box" style="display:none;">
+                  <span class="cw-label">Valor pago no ciclo por módulo (R$)</span>
+                  <div id="migp-valores-modulos" class="stack"></div>
+                  <p class="hint">Digite o valor antigo que o cliente pagou. Vazio usa o valor da tabela, mostrado no campo.</p>
+                </div>
+
+                <div>
+                  <span class="cw-label">Outros módulos antigos (fora da lista)</span>
+                  <div id="migp-modulos-extras" class="stack"></div>
+                  <button type="button" id="migp-add-extra" class="add-extra-btn">+ Adicionar módulo antigo</button>
+                  <p class="hint">Para módulos de planos antigos que não existem mais com esse nome. Informe o valor pago no ciclo.</p>
                 </div>
               </section>
 
@@ -284,6 +294,14 @@
                 </div>
 
                 <div>
+                  <span class="cw-label">
+                    <i data-lucide="package" class="inline-icon"></i>
+                    Módulos (opcional, valores da tabela)
+                  </span>
+                  <div id="migp-modulos-novo" class="stack"></div>
+                </div>
+
+                <div>
                   <span class="cw-label">Data da mudança</span>
                   <input id="migp-mudanca" class="cw-input" type="date">
                 </div>
@@ -309,9 +327,9 @@
               <div class="cw-note" style="margin-top:16px;">
                 <i data-lucide="check-circle-2" class="note-icon"></i>
                 <span>
-                  O plano atual usa o <strong>valor total do ciclo</strong> informado. Módulos antigos e o plano novo personalizado usam <strong>mensal × nº de meses</strong>,
-                  sem desconto de fidelidade — igual à cotação de módulos avulsos. Os módulos aqui listados
-                  geram crédito pelos dias não utilizados, e o módulo novo é cobrado no novo período.
+                  O plano atual e os módulos atuais usam o <strong>valor pago no ciclo</strong> e geram crédito
+                  pelos dias não utilizados. Os módulos do novo plano usam o <strong>valor da tabela</strong>
+                  (mensal × nº de meses, sem desconto de fidelidade) e são cobrados no novo período.
                 </span>
               </div>
             </div>

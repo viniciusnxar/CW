@@ -39,6 +39,7 @@ const MODULOS = [
   { key: "estoque", label: "Estoque Avançado", mensal: 29.99 },
   { key: "marketplaces", label: "Integração com Marketplaces", mensal: 29.99 },
   { key: "totem", label: "Totem", mensal: 99.99 },
+  { key: "tefpos", label: "TEF POS", mensal: 59.99 },
 ];
 
 const fmt = (v) =>

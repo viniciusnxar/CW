@@ -216,7 +216,7 @@ function renderCotacao() {
 
   let rowsHtml = `
     <div class="cw-row">
-      <span class="cw-row-label">Plano ${PLANOS[plano].label} · ${recLabel}</span>
+      <span class="cw-row-label">Plano ${PLANOS[plano].label} (${recLabel})</span>
       <span class="cw-row-value">${fmt(valorPlano)}</span>
     </div>`;
 
@@ -371,15 +371,15 @@ function renderMigracao() {
   const recNovaLabel = RECORRENCIAS.find((r) => r.key === recNova).label;
 
   const totalLabel = calc.valorAPagar >= 0 ? "Valor a pagar" : "Valor a favor do cliente";
-  const totalColor = calc.valorAPagar >= 0 ? "#A543FA" : "#1DB954";
+  const totalColor = calc.valorAPagar >= 0 ? "var(--brand-ink)" : "var(--credit)";
 
   ticket.innerHTML = `
     <div class="cw-row">
-      <span class="cw-row-label">Plano atual (${PLANOS[planoAtual].label} · ${recAtualLabel})</span>
+      <span class="cw-row-label">Plano atual (${PLANOS[planoAtual].label}, ${recAtualLabel})</span>
       <span class="cw-row-value">${fmt(calc.valorAtual)}</span>
     </div>
     <div class="cw-row">
-      <span class="cw-row-label">Plano novo (${PLANOS[planoNovo].label} · ${recNovaLabel})</span>
+      <span class="cw-row-label">Plano novo (${PLANOS[planoNovo].label}, ${recNovaLabel})</span>
       <span class="cw-row-value">${fmt(calc.valorNovo)}</span>
     </div>
     <div class="cw-row">
@@ -388,7 +388,7 @@ function renderMigracao() {
     </div>
     <div class="cw-row">
       <span class="cw-row-label">Crédito proporcional (plano atual)</span>
-      <span class="cw-row-value" style="color:#1DB954;">− ${fmt(calc.credito)}</span>
+      <span class="cw-row-value" style="color:var(--credit);">− ${fmt(calc.credito)}</span>
     </div>
     <div class="cw-row">
       <span class="cw-row-label">Débito proporcional (plano novo)</span>
@@ -508,7 +508,7 @@ function renderModulosPersonalizadosList() {
               `<option value="${mod.key}" ${mod.key === m.moduloNovoKey ? "selected" : ""}>${mod.label} (${fmt(mod.mensal)}/mês)</option>`
           ).join("")}
         </select>
-        <button type="button" class="remove-modulo-btn" title="Remover módulo">×</button>
+        <button type="button" class="remove-modulo-btn" title="Remover módulo" aria-label="Remover módulo">×</button>
       </div>
     </div>`
     )
@@ -555,7 +555,7 @@ function calcularMigracaoPersonalizada() {
 
   const valorAtualCiclo = mensalAtual * mesesAtual;
   const recAtualLabel = RECORRENCIAS.find((r) => r.key === s.recAtual).label;
-  const nomeAtual = `${s.nomeAtual.trim() || "Plano atual (personalizado)"} · ${recAtualLabel}`;
+  const nomeAtual = `${s.nomeAtual.trim() || "Plano atual (personalizado)"} (${recAtualLabel})`;
 
   let valorNovoCiclo, nomeNovo, recNovaLabel, mesesNovo;
   if (s.novoPersonalizado) {
@@ -649,7 +649,7 @@ function renderMigracaoPersonalizada() {
       <span class="cw-row-value">${fmt(calc.valorAtualCiclo)}</span>
     </div>
     <div class="cw-row">
-      <span class="cw-row-label">${escapeHtml(calc.nomeNovo)} · ${calc.recNovaLabel}</span>
+      <span class="cw-row-label">${escapeHtml(calc.nomeNovo)} (${calc.recNovaLabel})</span>
       <span class="cw-row-value">${fmt(calc.valorNovoCiclo)}</span>
     </div>
     <div class="cw-row">
@@ -658,7 +658,7 @@ function renderMigracaoPersonalizada() {
     </div>
     <div class="cw-row">
       <span class="cw-row-label">Crédito proporcional (plano atual)</span>
-      <span class="cw-row-value" style="color:#1DB954;">− ${fmt(calc.creditoPlano)}</span>
+      <span class="cw-row-value" style="color:var(--credit);">− ${fmt(calc.creditoPlano)}</span>
     </div>
     <div class="cw-row">
       <span class="cw-row-label">Débito proporcional (plano novo)</span>
@@ -667,7 +667,7 @@ function renderMigracaoPersonalizada() {
 
   calc.modulos.forEach((m) => {
     const sinal = m.diffModulo >= 0 ? "+" : "−";
-    const cor = m.diffModulo >= 0 ? "#2B2138" : "#1DB954";
+    const cor = m.diffModulo >= 0 ? "var(--ink)" : "var(--credit)";
     rowsHtml += `
     <div class="cw-row">
       <span class="cw-row-label">Módulo: ${escapeHtml(m.nomeAntigoDisplay)} → ${escapeHtml(m.nomeModuloNovo)}</span>
@@ -676,7 +676,7 @@ function renderMigracaoPersonalizada() {
   });
 
   const totalLabel = calc.totalGeral >= 0 ? "Valor a pagar" : "Valor a favor do cliente";
-  const totalColor = calc.totalGeral >= 0 ? "#A543FA" : "#1DB954";
+  const totalColor = calc.totalGeral >= 0 ? "var(--brand-ink)" : "var(--credit)";
 
   rowsHtml += `
     <div class="cw-total-row">

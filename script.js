@@ -85,7 +85,7 @@ const state = {
   },
   migracaoPersonalizada: {
     nomeAtual: "",
-    mensalAtual: "",
+    totalAtual: "", // valor total pago no ciclo atual (não mensal)
     recAtual: "mensal",
     inicioCiclo: "",
     novoPersonalizado: false,
@@ -526,8 +526,8 @@ function initMigracaoPersonalizadaForm() {
   document.getElementById("migp-nome-atual").addEventListener("input", (e) => {
     s.nomeAtual = e.target.value;
   });
-  document.getElementById("migp-mensal-atual").addEventListener("input", (e) => {
-    s.mensalAtual = e.target.value;
+  document.getElementById("migp-total-atual").addEventListener("input", (e) => {
+    s.totalAtual = e.target.value;
     renderMigracaoPersonalizada();
   });
   document.getElementById("migp-rec-atual").addEventListener("change", (e) => {
@@ -635,9 +635,9 @@ function calcularMigracaoPersonalizada() {
 
   const inicio = parseDate(s.inicioCiclo);
   const mudanca = parseDate(s.dataMudanca);
-  const mensalAtual = parseFloat(s.mensalAtual);
+  const valorAtualCiclo = parseFloat(s.totalAtual);
 
-  if (!inicio || !mudanca || !Number.isFinite(mensalAtual)) return null;
+  if (!inicio || !mudanca || !Number.isFinite(valorAtualCiclo)) return null;
 
   const mesesAtual = mesesDe(s.recAtual);
   const fim = fimDoCiclo(inicio, mesesAtual);
@@ -646,7 +646,6 @@ function calcularMigracaoPersonalizada() {
   const fora = mudanca < inicio || mudanca > fim;
   const fracao = diasTotais > 0 ? diasRestantes / diasTotais : 0;
 
-  const valorAtualCiclo = mensalAtual * mesesAtual;
   const recAtualLabel = RECORRENCIAS.find((r) => r.key === s.recAtual).label;
   const nomeAtual = `${s.nomeAtual.trim() || "Plano atual (personalizado)"} (${recAtualLabel})`;
 

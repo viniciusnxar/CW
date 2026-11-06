@@ -158,6 +158,23 @@ h1 {
   color: var(--ink);
 }
 
+/* DESCONTOS (cotação) */
+.desc-box {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 14px;
+  padding-left: 14px;
+  border-left: 3px solid var(--line-strong);
+}
+
+.desc-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 110px;
+  gap: 12px;
+  align-items: center;
+}
+
 /* MÓDULOS PERSONALIZADOS */
 .modulo-custom-row {
   border-top: 1px dashed var(--line-strong);

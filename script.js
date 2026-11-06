@@ -73,6 +73,7 @@ const state = {
     plano: "delivery",
     recorrencia: "mensal",
     modulos: [],
+    descontos: { ativo: false, plano: "", modulos: {} }, // percentuais digitados, por key de módulo
   },
   migracao: {
     planoAtual: "delivery",
@@ -174,6 +175,53 @@ function initCotacaoForm() {
       const idx = state.cotacao.modulos.indexOf(key);
       if (idx >= 0) state.cotacao.modulos.splice(idx, 1);
       else state.cotacao.modulos.push(key);
+      renderDescontosModulos();
+      renderCotacao();
+    });
+  });
+
+  // Descontos (opcional)
+  const desc = state.cotacao.descontos;
+  document.getElementById("cot-desc-toggle").addEventListener("change", (e) => {
+    desc.ativo = e.target.checked;
+    document.getElementById("cot-descontos").style.display = desc.ativo ? "" : "none";
+    renderCotacao();
+  });
+  document.getElementById("cot-desc-plano").addEventListener("input", (e) => {
+    desc.plano = e.target.value;
+    renderCotacao();
+  });
+  renderDescontosModulos();
+}
+
+// Percentual digitado → número entre 0 e 100 (vazio ou inválido = 0)
+const pct = (str) => Math.min(100, Math.max(0, parseFloat(str) || 0));
+
+// Um campo de desconto por módulo selecionado. Só re-renderiza quando a
+// seleção muda, para não perder o foco enquanto o usuário digita.
+function renderDescontosModulos() {
+  const { modulos, descontos } = state.cotacao;
+  const wrap = document.getElementById("cot-desc-modulos");
+
+  if (modulos.length === 0) {
+    wrap.innerHTML = `<p class="hint">Selecione um módulo acima para dar desconto nele.</p>`;
+    return;
+  }
+
+  wrap.innerHTML = MODULOS.filter((m) => modulos.includes(m.key))
+    .map(
+      (m) => `
+    <div class="desc-row">
+      <label class="modulo-label" for="cot-desc-mod-${m.key}">${m.label}</label>
+      <input id="cot-desc-mod-${m.key}" class="cw-input" type="number" min="0" max="100" step="0.01"
+        placeholder="0" data-desc-mod="${m.key}" value="${escapeHtml(descontos.modulos[m.key] ?? "")}">
+    </div>`
+    )
+    .join("");
+
+  wrap.querySelectorAll("input[data-desc-mod]").forEach((input) => {
+    input.addEventListener("input", () => {
+      descontos.modulos[input.dataset.descMod] = input.value;
       renderCotacao();
     });
   });
@@ -200,25 +248,38 @@ function renderCotacao() {
     label.querySelector("input").checked = ativo;
   });
 
-  const modulosCalculados = MODULOS.map((m) => ({
-    ...m,
-    valorCiclo: m.mensal * meses,
-    ativo: modulos.includes(m.key),
-  }));
+  const { descontos } = state.cotacao;
+  const descPlanoPct = descontos.ativo ? pct(descontos.plano) : 0;
+  const descPlano = valorPlano * (descPlanoPct / 100);
+
+  const modulosCalculados = MODULOS.map((m) => {
+    const valorCiclo = m.mensal * meses;
+    const descPct = descontos.ativo ? pct(descontos.modulos[m.key]) : 0;
+    return { ...m, valorCiclo, descPct, desc: valorCiclo * (descPct / 100), ativo: modulos.includes(m.key) };
+  });
 
   const totalModulos = modulosCalculados
     .filter((m) => m.ativo)
-    .reduce((acc, m) => acc + m.valorCiclo, 0);
+    .reduce((acc, m) => acc + m.valorCiclo - m.desc, 0);
 
-  const total = valorPlano + totalModulos;
+  const total = valorPlano - descPlano + totalModulos;
 
   const recLabel = RECORRENCIAS.find((r) => r.key === recorrencia).label;
+
+  const rowDesconto = (label, descPct, valor) =>
+    descPct > 0
+      ? `
+    <div class="cw-row">
+      <span class="cw-row-label">Desconto ${label} (${descPct.toLocaleString("pt-BR")}%)</span>
+      <span class="cw-row-value" style="color:var(--credit);">− ${fmt(valor)}</span>
+    </div>`
+      : "";
 
   let rowsHtml = `
     <div class="cw-row">
       <span class="cw-row-label">Plano ${PLANOS[plano].label} (${recLabel})</span>
       <span class="cw-row-value">${fmt(valorPlano)}</span>
-    </div>`;
+    </div>` + rowDesconto("no plano", descPlanoPct, descPlano);
 
   const ativos = modulosCalculados.filter((m) => m.ativo);
 
@@ -234,7 +295,7 @@ function renderCotacao() {
     <div class="cw-row">
       <span class="cw-row-label">Módulo ${m.label} (${meses}× ${fmt(m.mensal)})</span>
       <span class="cw-row-value">${fmt(m.valorCiclo)}</span>
-    </div>`;
+    </div>` + rowDesconto(m.label, m.descPct, m.desc);
     });
   }
 

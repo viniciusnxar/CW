@@ -475,6 +475,7 @@ function renderMigracao() {
 /* Blocos do resumo compartilhados pelas duas sub-abas de migração */
 function rowsCicloAtual(label, valor, calc) {
   return `
+    <div class="cw-ticket-head">Plano atual</div>
     <div class="cw-row">
       <span class="cw-row-label">${escapeHtml(label)}</span>
       <span class="cw-row-value">${fmt(valor)}</span>
@@ -491,6 +492,7 @@ function rowsCicloAtual(label, valor, calc) {
 
 function rowsNovoPeriodo(label, valor, calc) {
   return `
+    <div class="cw-ticket-head cw-ticket-head-novo">Novo plano</div>
     <div class="cw-row">
       <span class="cw-row-label">Novo período</span>
       <span class="cw-row-value">${fmtDataBR(calc.mudanca)} a ${fmtDataBR(calc.fimNovo)}</span>

@@ -158,6 +158,61 @@ h1 {
   color: var(--ink);
 }
 
+/* MIGRAÇÃO: blocos "1 Plano atual" e "2 Novo plano" */
+.mig-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-left: 16px;
+  border-left: 4px solid var(--line-strong);
+}
+.mig-grupo + .mig-grupo { margin-top: 10px; }
+.mig-grupo-novo { border-left-color: var(--brand); }
+
+.mig-titulo {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.2;
+  color: var(--head);
+  overflow-wrap: break-word;
+  min-width: 0;
+}
+.mig-grupo-novo .mig-titulo { color: var(--brand-ink); }
+
+.mig-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  font-size: 16px;
+  background: var(--head);
+  color: var(--on-brand);
+}
+.mig-grupo-novo .mig-num { background: var(--brand); }
+
+.mig-sub {
+  margin: -12px 0 0;
+  font-size: 15px;
+  color: var(--subtle);
+}
+
+/* Títulos de seção dentro do cupom */
+.cw-ticket-head {
+  padding: 18px 0 2px;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--head);
+}
+.cw-ticket-head:first-child { padding-top: 0; }
+.cw-ticket-head-novo { color: var(--brand-ink); }
+
 /* DESCONTOS (cotação) */
 .desc-box {
   display: flex;

@@ -122,50 +122,58 @@
 
             <!-- FORM -->
             <div class="form-col">
-              <div>
-                <span class="cw-label">Plano atual</span>
-                <div class="grid-2-gap">
-                  <select id="mig-plano-atual" class="cw-select"></select>
-                  <select id="mig-rec-atual" class="cw-select"></select>
+              <section class="mig-grupo">
+                <h2 class="mig-titulo"><span class="mig-num">1</span>Plano atual</h2>
+                <p class="mig-sub">O que o cliente tem hoje</p>
+
+                <div>
+                  <span class="cw-label">Plano e recorrência</span>
+                  <div class="grid-2-gap">
+                    <select id="mig-plano-atual" class="cw-select" aria-label="Plano atual"></select>
+                    <select id="mig-rec-atual" class="cw-select" aria-label="Recorrência atual"></select>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <span class="cw-label">Início do ciclo atual</span>
-                <input id="mig-inicio" class="cw-input" type="date">
-                <p id="mig-fim-info" class="hint"></p>
-              </div>
-
-              <div>
-                <span class="cw-label">
-                  <i data-lucide="package" class="inline-icon"></i>
-                  Módulos no plano atual (opcional)
-                </span>
-                <div id="mig-modulos-atual" class="stack"></div>
-              </div>
-
-              <div class="divider"></div>
-
-              <div>
-                <span class="cw-label">Novo plano</span>
-                <div class="grid-2-gap">
-                  <select id="mig-plano-novo" class="cw-select"></select>
-                  <select id="mig-rec-nova" class="cw-select"></select>
+                <div>
+                  <span class="cw-label">Início do ciclo</span>
+                  <input id="mig-inicio" class="cw-input" type="date">
+                  <p id="mig-fim-info" class="hint"></p>
                 </div>
-              </div>
 
-              <div>
-                <span class="cw-label">
-                  <i data-lucide="package" class="inline-icon"></i>
-                  Módulos no novo plano (opcional)
-                </span>
-                <div id="mig-modulos-novo" class="stack"></div>
-              </div>
+                <div>
+                  <span class="cw-label">
+                    <i data-lucide="package" class="inline-icon"></i>
+                    Módulos (opcional)
+                  </span>
+                  <div id="mig-modulos-atual" class="stack"></div>
+                </div>
+              </section>
 
-              <div>
-                <span class="cw-label">Data da mudança</span>
-                <input id="mig-mudanca" class="cw-input" type="date">
-              </div>
+              <section class="mig-grupo mig-grupo-novo">
+                <h2 class="mig-titulo"><span class="mig-num">2</span>Novo plano</h2>
+                <p class="mig-sub">Para onde o cliente vai, a partir da data da mudança</p>
+
+                <div>
+                  <span class="cw-label">Plano e recorrência</span>
+                  <div class="grid-2-gap">
+                    <select id="mig-plano-novo" class="cw-select" aria-label="Novo plano"></select>
+                    <select id="mig-rec-nova" class="cw-select" aria-label="Nova recorrência"></select>
+                  </div>
+                </div>
+
+                <div>
+                  <span class="cw-label">
+                    <i data-lucide="package" class="inline-icon"></i>
+                    Módulos (opcional)
+                  </span>
+                  <div id="mig-modulos-novo" class="stack"></div>
+                </div>
+
+                <div>
+                  <span class="cw-label">Data da mudança</span>
+                  <input id="mig-mudanca" class="cw-input" type="date">
+                </div>
+              </section>
 
               <div id="mig-warn" class="cw-warn" style="display:none;">
                 <i data-lucide="alert-triangle" class="note-icon warn-icon"></i>
@@ -212,72 +220,78 @@
                 </span>
               </div>
 
-              <div>
-                <span class="cw-label">Plano atual — nome (opcional)</span>
-                <input id="migp-nome-atual" class="cw-input" type="text" placeholder="Ex: Plano Delivery (valor antigo)">
-              </div>
+              <section class="mig-grupo">
+                <h2 class="mig-titulo"><span class="mig-num">1</span>Plano atual</h2>
+                <p class="mig-sub">O que o cliente tem hoje, com o valor que ele pagou</p>
 
-              <div class="grid-2-gap">
                 <div>
-                  <span class="cw-label">Valor total do plano atual (R$)</span>
-                  <input id="migp-total-atual" class="cw-input" type="number" step="0.01" min="0" placeholder="0,00">
+                  <span class="cw-label">Nome do plano (opcional)</span>
+                  <input id="migp-nome-atual" class="cw-input" type="text" placeholder="Ex: Plano Delivery (valor antigo)">
                 </div>
-                <div>
-                  <span class="cw-label">Recorrência do ciclo atual</span>
-                  <select id="migp-rec-atual" class="cw-select"></select>
-                </div>
-              </div>
 
-              <div>
-                <span class="cw-label">Início do ciclo atual</span>
-                <input id="migp-inicio" class="cw-input" type="date">
-                <p id="migp-fim-info" class="hint"></p>
-              </div>
-
-              <div class="divider"></div>
-
-              <div>
-                <span class="cw-label">Novo plano</span>
-                <label class="cw-check-inline">
-                  <input type="checkbox" id="migp-novo-personalizado" class="modulo-checkbox">
-                  <span>Também usar valor personalizado para o plano novo</span>
-                </label>
-              </div>
-
-              <div id="migp-novo-tabela" class="grid-2-gap">
-                <select id="migp-plano-novo" class="cw-select"></select>
-                <select id="migp-rec-nova" class="cw-select"></select>
-              </div>
-
-              <div id="migp-novo-custom" style="display:none;">
-                <input id="migp-nome-novo" class="cw-input" type="text" placeholder="Nome do plano novo (opcional)" style="margin-bottom:8px;">
                 <div class="grid-2-gap">
-                  <input id="migp-mensal-novo" class="cw-input" type="number" step="0.01" min="0" placeholder="Valor mensal novo (R$)">
-                  <select id="migp-rec-nova-custom" class="cw-select"></select>
+                  <div>
+                    <span class="cw-label">Valor total pago no ciclo (R$)</span>
+                    <input id="migp-total-atual" class="cw-input" type="number" step="0.01" min="0" placeholder="0,00">
+                  </div>
+                  <div>
+                    <span class="cw-label">Recorrência</span>
+                    <select id="migp-rec-atual" class="cw-select"></select>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <span class="cw-label">Data da mudança</span>
-                <input id="migp-mudanca" class="cw-input" type="date">
-              </div>
+                <div>
+                  <span class="cw-label">Início do ciclo</span>
+                  <input id="migp-inicio" class="cw-input" type="date">
+                  <p id="migp-fim-info" class="hint"></p>
+                </div>
+
+                <div>
+                  <span class="cw-label">
+                    <i data-lucide="package" class="inline-icon"></i>
+                    Módulos com valor antigo (opcional)
+                  </span>
+                  <div id="migp-modulos-list" class="stack"></div>
+                  <button type="button" id="migp-add-modulo" class="add-modulo-btn">
+                    + Adicionar módulo personalizado
+                  </button>
+                </div>
+              </section>
+
+              <section class="mig-grupo mig-grupo-novo">
+                <h2 class="mig-titulo"><span class="mig-num">2</span>Novo plano</h2>
+                <p class="mig-sub">Para onde o cliente vai, a partir da data da mudança</p>
+
+                <div>
+                  <span class="cw-label">Plano e recorrência</span>
+                  <label class="cw-check-inline">
+                    <input type="checkbox" id="migp-novo-personalizado" class="modulo-checkbox">
+                    <span>Usar valor personalizado para o plano novo</span>
+                  </label>
+                </div>
+
+                <div id="migp-novo-tabela" class="grid-2-gap">
+                  <select id="migp-plano-novo" class="cw-select" aria-label="Novo plano"></select>
+                  <select id="migp-rec-nova" class="cw-select" aria-label="Nova recorrência"></select>
+                </div>
+
+                <div id="migp-novo-custom" style="display:none;">
+                  <input id="migp-nome-novo" class="cw-input" type="text" placeholder="Nome do plano novo (opcional)" style="margin-bottom:8px;">
+                  <div class="grid-2-gap">
+                    <input id="migp-mensal-novo" class="cw-input" type="number" step="0.01" min="0" placeholder="Valor mensal novo (R$)">
+                    <select id="migp-rec-nova-custom" class="cw-select"></select>
+                  </div>
+                </div>
+
+                <div>
+                  <span class="cw-label">Data da mudança</span>
+                  <input id="migp-mudanca" class="cw-input" type="date">
+                </div>
+              </section>
 
               <div id="migp-warn" class="cw-warn" style="display:none;">
                 <i data-lucide="alert-triangle" class="note-icon warn-icon"></i>
                 <span id="migp-warn-text"></span>
-              </div>
-
-              <div class="divider"></div>
-
-              <div>
-                <span class="cw-label">
-                  <i data-lucide="package" class="inline-icon"></i>
-                  Módulos com valor antigo (opcional)
-                </span>
-                <div id="migp-modulos-list" class="stack"></div>
-                <button type="button" id="migp-add-modulo" class="add-modulo-btn">
-                  + Adicionar módulo personalizado
-                </button>
               </div>
 
             </div>

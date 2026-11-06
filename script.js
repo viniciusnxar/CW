@@ -244,6 +244,14 @@ function renderCotacao() {
       <span class="cw-total-value">${fmt(total)}</span>
     </div>`;
 
+  if (meses > 1) {
+    rowsHtml += `
+    <div class="cw-row">
+      <span class="cw-row-label">Parcelado em ${meses}×</span>
+      <span class="cw-row-value">${fmt(total / meses)}/mês</span>
+    </div>`;
+  }
+
   document.getElementById("cot-ticket").innerHTML = rowsHtml;
 }
 

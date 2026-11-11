@@ -4,6 +4,21 @@
    aplicado). Se a Central mudar, atualizar apenas este bloco.
    ────────────────────────────────────────────────────────── */
 const PLANOS = {
+  mesas2025: {
+    label: "[2025] Mesas",
+    descricao: "Mesas com valor de 2025",
+    precos: { mensal: 175.99, trimestral: 495.0, semestral: 957.0, anual: 1782.0 },
+  },
+  delivery2025: {
+    label: "[2025] Delivery",
+    descricao: "Delivery com valor de 2025",
+    precos: { mensal: 197.99, trimestral: 544.5, semestral: 1023.0, anual: 1914.0 },
+  },
+  premium2025: {
+    label: "[2025] Premium",
+    descricao: "Premium com valor de 2025",
+    precos: { mensal: 241.99, trimestral: 676.5, semestral: 1287.0, anual: 2442.0 },
+  },
   mesas: {
     label: "Mesas",
     descricao: "Mesas e comandas + retirada no local",
@@ -20,6 +35,18 @@ const PLANOS = {
     precos: { mensal: 269.99, trimestral: 799.97, semestral: 1499.94, anual: 2879.88 },
   },
 };
+
+// Plano sem preço em algum ciclo: desabilita esses ciclos em `wrap`
+// (select ou grupo de botões) e devolve uma recorrência válida.
+function syncRecorrencias(plano, rec, wrap) {
+  const precos = PLANOS[plano].precos;
+  const valida = rec in precos ? rec : Object.keys(precos)[0];
+  wrap.querySelectorAll("option, button").forEach((el) => {
+    el.disabled = !((el.value || el.dataset.rec) in precos);
+  });
+  if (wrap.tagName === "SELECT") wrap.value = valida;
+  return valida;
+}
 
 const RECORRENCIAS = [
   { key: "mensal", label: "Mensal", meses: 1 },
@@ -240,6 +267,8 @@ function renderDescontosModulos() {
 }
 
 function renderCotacao() {
+  state.cotacao.recorrencia = syncRecorrencias(
+    state.cotacao.plano, state.cotacao.recorrencia, document.getElementById("cot-recorrencia"));
   const { plano, recorrencia, modulos } = state.cotacao;
   const meses = mesesDe(recorrencia);
   const valorPlano = PLANOS[plano].precos[recorrencia];
@@ -418,6 +447,9 @@ function calcularMigracao() {
 }
 
 function renderMigracao() {
+  const m = state.migracao;
+  m.recAtual = syncRecorrencias(m.planoAtual, m.recAtual, document.getElementById("mig-rec-atual"));
+  m.recNova = syncRecorrencias(m.planoNovo, m.recNova, document.getElementById("mig-rec-nova"));
   const { planoAtual, recAtual, planoNovo, recNova } = state.migracao;
   const calc = calcularMigracao();
 
@@ -750,6 +782,7 @@ function calcularMigracaoPersonalizada() {
 
 function renderMigracaoPersonalizada() {
   const s = state.migracaoPersonalizada;
+  s.recNova = syncRecorrencias(s.planoNovo, s.recNova, document.getElementById("migp-rec-nova"));
   const calc = calcularMigracaoPersonalizada();
 
   const fimInfo = document.getElementById("migp-fim-info");
